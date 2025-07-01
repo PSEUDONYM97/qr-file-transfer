@@ -1,5 +1,189 @@
 # QR File Transfer Tool - Development Status
 
+## 🚀 V2.0 DEVELOPMENT BRANCH - Simplified Command Structure
+
+**Current Branch**: `v2-simplified-commands` (2.0.0-dev)  
+**Stable Release**: `main` branch (v1.0.0) ✅ COMPLETE & TAGGED
+
+---
+
+## 🎯 V2.0 PRIORITY TODO
+
+### **📋 PHASE 1: Core Restructuring** ⏳ IN PROGRESS
+
+#### ✅ COMPLETED
+- [x] **Design Document** - Complete v2 architecture plan created
+- [x] **Version Bump** - Updated to 2.0.0-dev
+- [x] **Branch Creation** - `v2-simplified-commands` branch active
+- [x] **v1.0.0 Stable** - Tagged and preserved on main branch
+
+#### 🎯 IMMEDIATE TODO (Phase 1)
+- [ ] **Implement `qr read` command** with smart auto-detection
+  - [ ] Create input type detection logic (images vs chunks vs mixed)
+  - [ ] Merge scan + rebuild functionality into unified workflow
+  - [ ] Auto-rebuild enabled by default for QR images
+  - [ ] Preserve all existing scan/rebuild options
+
+- [ ] **Smart Auto-Detection Engine**
+  - [ ] File type recognition (PNG, JPG, TXT chunks)
+  - [ ] Directory content analysis  
+  - [ ] Mixed content handling (both images and chunks)
+  - [ ] Clear user feedback on detected input type
+
+- [ ] **Update Help System**
+  - [ ] Revise main help to show simplified commands
+  - [ ] Update `qr read --help` with comprehensive options
+  - [ ] Add migration notes from v1.x commands
+
+#### 🔧 TECHNICAL IMPLEMENTATION
+```python
+# New qr read command structure needed:
+def create_read_parser(self, subparsers):
+    """Create unified read parser with auto-detection"""
+    
+def detect_input_type(self, input_path):
+    """Smart detection: images, chunks, or mixed"""
+    
+def run_read(self, args):
+    """Execute read with automatic workflow routing"""
+```
+
+---
+
+## 📊 V2.0 COMMAND MAPPING
+
+| v1.x Command | v2.x Command | Implementation Status |
+|--------------|--------------|----------------------|
+| `qr generate file.txt` | `qr generate file.txt` | ✅ **Same (no changes needed)** |
+| `qr scan ./photos/` | `qr read ./photos/` | ⏳ **TODO: Implement** |
+| `qr rebuild ./chunks/` | `qr read ./chunks/` | ⏳ **TODO: Implement** |
+| `qr scan ./photos/ --auto-rebuild` | `qr read ./photos/` | ⏳ **TODO: Auto by default** |
+| `qr config show` | `qr config show` | ✅ **Same (no changes needed)** |
+
+---
+
+## 🎯 V2.0 EXPECTED USER EXPERIENCE
+
+### **Before (v1.x - Multi-step)**
+```bash
+qr scan ./photos/ --output ./chunks/     # Step 1: Extract chunks
+qr rebuild ./chunks/ --verify            # Step 2: Rebuild files
+```
+
+### **After (v2.x - Single-step)** ⏳ TODO
+```bash
+qr read ./photos/                        # Auto: scan → rebuild
+# Output: 🔍 Detected: QR image files (15 images found)
+#         📸 Scanning QR codes...
+#         🔧 Auto-rebuilding files...
+#         ✅ Successfully reconstructed 3 files
+```
+
+---
+
+## 🔬 PHASE 2: Enhanced Features ⏳ FUTURE
+
+- [ ] **Mixed Content Handling**
+  - [ ] Detect directories with both QR images AND chunk files
+  - [ ] Smart processing: scan images, rebuild existing chunks
+  - [ ] User override options: `--mode scan-only`, `--mode rebuild-only`
+
+- [ ] **Advanced Override Options**
+  - [ ] `--as-images` - Force treat as QR images
+  - [ ] `--as-chunks` - Force treat as chunk files  
+  - [ ] `--no-auto-rebuild` - Disable automatic rebuilding
+
+- [ ] **Improved User Feedback**
+  - [ ] Better progress indicators for detection phase
+  - [ ] Detailed statistics on what was found/processed
+  - [ ] Clearer error messages for unrecognized inputs
+
+---
+
+## 🔄 PHASE 3: Backward Compatibility ⏳ OPTIONAL
+
+- [ ] **v1.x Command Aliases** (Optional)
+  - [ ] `qr scan` → `qr read` with deprecation warning
+  - [ ] `qr rebuild` → `qr read` with deprecation warning
+  - [ ] Migration documentation for existing users
+
+- [ ] **Migration Tools**
+  - [ ] Script to update existing workflows
+  - [ ] Clear upgrade documentation
+  - [ ] Version detection in help system
+
+---
+
+## 🧪 TESTING REQUIREMENTS
+
+### **Regression Testing** ⏳ TODO
+- [ ] **All v1.x functionality** must work through v2.x commands
+- [ ] **Performance benchmarks** - no degradation from v1.x
+- [ ] **Cross-platform testing** - Windows/macOS/Linux compatibility
+
+### **New Feature Testing** ⏳ TODO  
+- [ ] **Auto-detection accuracy** across various input types
+- [ ] **Mixed content scenarios** - images + chunks in same directory
+- [ ] **Error handling** - unrecognized inputs, corrupted files
+- [ ] **User experience** - help clarity, command discoverability
+
+---
+
+## 🎯 SUCCESS CRITERIA
+
+### **Core Functionality** (Must Have)
+- [ ] `qr read ./photos/` successfully scans and rebuilds automatically
+- [ ] `qr read ./chunks/` successfully rebuilds from chunk files
+- [ ] All v1.x features accessible through v2.x interface
+- [ ] No regression in performance or reliability
+
+### **User Experience** (Should Have)
+- [ ] Clear feedback on input type detection
+- [ ] Intuitive command structure (generate ↔ read)
+- [ ] Helpful error messages for edge cases
+- [ ] Smooth migration path from v1.x
+
+### **Code Quality** (Must Have)
+- [ ] Clean implementation with proper error handling
+- [ ] Comprehensive test coverage
+- [ ] Documentation updated for v2.x commands
+- [ ] Backward compatibility maintained
+
+---
+
+## 📦 CURRENT PROJECT STATUS
+
+### ✅ STABLE FOUNDATION (v1.0.0)
+- **Complete CLI tool** with folder processing, organized output, cleanup
+- **Enterprise security** - AES-256 encryption + SHA-256 integrity
+- **Professional interface** - Pandoc-style commands with comprehensive help
+- **Production ready** - All features tested and working
+- **GitHub ready** - Documentation, tests, contribution guidelines
+
+### 🚀 V2.0 DEVELOPMENT FOCUS
+- **Simplified interface** - 4 commands → 2 main commands
+- **Smart automation** - Tool decides the right processing workflow  
+- **Better user experience** - Single-step operations instead of multi-step
+- **Maintained functionality** - All v1.x features preserved
+
+---
+
+## 🎉 DEVELOPMENT PRIORITY
+
+**IMMEDIATE FOCUS**: Implement the core `qr read` command with auto-detection
+
+**KEY COMPONENTS TO BUILD**:
+1. `detect_input_type()` function
+2. `run_read()` unified workflow handler  
+3. Updated argument parsing for read command
+4. Integration testing with existing functionality
+
+**GOAL**: Make `qr read ./photos/` work as seamlessly as `qr generate file.txt` currently does.
+
+---
+
+*v2.0 represents a significant UX improvement while preserving all the powerful functionality built in v1.0* 🚀
+
 ## Project Status: Professional CLI Tool ✅ COMPLETE
 
 ### Project Vision - ACHIEVED

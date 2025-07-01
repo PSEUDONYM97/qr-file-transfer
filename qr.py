@@ -33,14 +33,18 @@ class QRUnifiedCLI:
     """Unified CLI for QR File Transfer Tool"""
     
     def __init__(self):
-        self.version = "2.0.0"
+        self.version = "2.0.0-dev"
         self.description = """
-QR File Transfer Tool - Professional CLI for secure file transfer via QR codes
-═══════════════════════════════════════════════════════════════════════════════
+QR File Transfer Tool v2 - Simplified CLI for secure file transfer via QR codes
+═════════════════════════════════════════════════════════════════════════════
 
 Convert files and folders to QR codes with AES-256 encryption, organized output,
 and comprehensive integrity verification. Perfect for air-gapped environments
 and secure file transfer workflows.
+
+🚀 v2 Simplified Commands:
+  • qr generate - Create QR codes from files or folders  
+  • qr read     - Process QR images or chunks back to files
 
 ✨ Key Features:
   • Folder batch processing with organized output structure
@@ -55,7 +59,7 @@ and secure file transfer workflows.
   • Batch process entire directories: qr generate ./docs/ --sheet
   • Secure encrypted transfer: qr generate secret.txt --encrypt
   • Organized output structure: qr generate ./files/ -o ./qr_backup/
-  • Complete scan-to-rebuild: qr scan ./photos/ --auto-rebuild
+  • Complete read workflow: qr read ./photos/ --auto-rebuild
         """
     
     def _safe_print(self, text):
@@ -77,10 +81,17 @@ and secure file transfer workflows.
 Common workflows:
   qr generate file.txt --sheet              # Create QR sheets for easy scanning
   qr generate ./documents/ --sheet          # Batch process entire folder  
-  qr generate secret.txt --encrypt          # Encrypted QR codes with AES-256
+  qr generate secret.txt --encrypt          # AES-256 encrypted QR codes
   qr generate ./folder/ -o ./qr_backup/     # Organized output structure
-  qr scan ./photos/ --auto-rebuild          # Scan QR images and rebuild files
-  qr rebuild ./scanned_chunks/ --verify     # Reconstruct files with verification
+  
+🚀 v2.0 Simplified Interface:
+  qr read ./photos/                         # Auto-scan QR images + rebuild files
+  qr read ./scanned_chunks/                 # Auto-rebuild from chunk files
+  qr read ./mixed_folder/                   # Handle both images and chunks
+
+Legacy workflows (v1.x style):
+  qr scan ./photos/ --auto-rebuild          # Still supported
+  qr rebuild ./scanned_chunks/ --verify     # Still supported
 
 Folder workflows:
   qr generate ./docs/ --pattern "*.txt"     # Process only text files
@@ -101,17 +112,18 @@ Version: """ + self.version
         subparsers = parser.add_subparsers(
             dest='command',
             title='Commands',
-            description='Available operations',
+            description='Available operations (v2.0 simplified interface)',
             help='Use "qr <command> --help" for detailed help'
         )
         
         # Generate command
         self.create_generate_parser(subparsers)
         
-        # Scan command  
-        self.create_scan_parser(subparsers)
+        # Read command (v2.0 unified)
+        self.create_read_parser(subparsers)
         
-        # Rebuild command
+        # Legacy commands (v1.x compatibility)
+        self.create_scan_parser(subparsers)
         self.create_rebuild_parser(subparsers)
         
         # Config command
@@ -213,8 +225,8 @@ Examples:
         scan = subparsers.add_parser(
             'scan',
             aliases=['s'],
-            help='Scan QR code images to extract chunks',
-            description='Process QR code images to extract file chunks for reconstruction with organized output',
+            help='Scan QR code images to extract chunks (legacy - use "qr read" instead)', 
+            description='Legacy command: Process QR code images to extract file chunks. For v2.0, use "qr read" which auto-detects and rebuilds.',
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples:
@@ -270,9 +282,9 @@ Examples:
         """Create parser for rebuild command"""
         rebuild = subparsers.add_parser(
             'rebuild',
-            aliases=['r'],
-            help='Rebuild files from scanned chunks',
-            description='Reconstruct original files from QR code chunks with integrity verification and organized output',
+            aliases=['rb'],
+            help='Rebuild files from scanned chunks (legacy - use "qr read" instead)',
+            description='Legacy command: Reconstruct original files from QR code chunks. For v2.0, use "qr read" which auto-detects input type.',
             formatter_class=argparse.RawDescriptionHelpFormatter,
             epilog="""
 Examples:
@@ -359,6 +371,91 @@ Examples:
                           help='Create sample configuration file')
         
         return config
+    
+    def create_read_parser(self, subparsers):
+        """Create parser for unified read command with auto-detection"""
+        read = subparsers.add_parser(
+            'read',
+            aliases=['r'],
+            help='Read QR codes or chunks back to files (auto-detects input type)',
+            description='Unified command to process QR images or chunk files back to original files with smart auto-detection',
+            formatter_class=argparse.RawDescriptionHelpFormatter,
+            epilog="""
+🚀 v2.0 Simplified Interface:
+  qr read ./photos/              # Auto-detects QR images, scans + rebuilds
+  qr read ./chunks/              # Auto-detects chunk files, rebuilds directly
+  qr read ./mixed_folder/        # Handles both images and chunks intelligently
+  qr read single_image.png       # Processes single QR image
+  qr read chunk_001.txt          # Processes single chunk file
+
+🔍 Auto-Detection Features:
+  • Automatically identifies QR images (.png, .jpg, .jpeg, .bmp, .tiff)
+  • Recognizes QR chunk files (.txt with QR headers)
+  • Handles mixed directories (both images and chunks)
+  • Auto-rebuild enabled by default for QR images
+  • Organized output structure with session timestamps
+
+🎯 Advanced Options:
+  qr read ./folder/ --mode scan-only     # Only scan, don't rebuild
+  qr read ./folder/ --mode rebuild-only  # Only rebuild from chunks
+  qr read ./folder/ --as-images          # Force treat as QR images
+  qr read ./folder/ --as-chunks          # Force treat as chunk files
+            """
+        )
+        
+        # Required arguments
+        read.add_argument('input', help='File or directory containing QR images or chunk files')
+        
+        # Detection override options
+        detection = read.add_argument_group('Detection Override Options')
+        detection.add_argument('--as-images', action='store_true',
+                             help='Force treat input as QR images (skip auto-detection)')
+        detection.add_argument('--as-chunks', action='store_true', 
+                             help='Force treat input as chunk files (skip auto-detection)')
+        detection.add_argument('--mode', choices=['auto', 'scan-only', 'rebuild-only'],
+                             default='auto', help='Processing mode (default: auto)')
+        
+        # Input/Output organization
+        io_group = read.add_argument_group('Input/Output Options')
+        io_group.add_argument('--output', '-o', metavar='DIR',
+                             help='Output directory (default: ./read_output/)')
+        io_group.add_argument('--pattern', metavar='GLOB',
+                             help='File pattern filter (e.g., "*.png", "chunk_*.txt")')
+        io_group.add_argument('--recursive', '-r', action='store_true',
+                             help='Process subdirectories recursively')
+        
+        # Workflow options
+        workflow = read.add_argument_group('Workflow Options')
+        workflow.add_argument('--organized', action='store_true', default=True,
+                             help='Create organized output structure (default: enabled)')
+        workflow.add_argument('--no-organized', dest='organized', action='store_false',
+                             help='Disable organized output structure')
+        workflow.add_argument('--auto-rebuild', action='store_true', default=True,
+                             help='Auto-rebuild files after scanning (default: enabled)')
+        workflow.add_argument('--no-auto-rebuild', dest='auto_rebuild', action='store_false',
+                             help='Only scan QR codes, do not rebuild files')
+        workflow.add_argument('--auto-cleanup', action='store_true', default=True,
+                             help='Automatically cleanup temporary files (default: enabled)')
+        workflow.add_argument('--read-summary', action='store_true', default=True,
+                             help='Generate read processing summary (default: enabled)')
+        
+        # Processing options (from scan/rebuild)
+        processing = read.add_argument_group('Processing Options')
+        processing.add_argument('--verify-checksums', action='store_true', default=True,
+                               help='Verify chunk integrity with checksums (default: enabled)')
+        processing.add_argument('--no-verify', dest='verify_checksums', action='store_false',
+                               help='Skip checksum verification')
+        processing.add_argument('--encrypted', action='store_true',
+                               help='Process encrypted chunks (will prompt for password)')
+        processing.add_argument('--spaces', action='store_true',
+                               help='Convert tabs to spaces during reconstruction')
+        processing.add_argument('--max-errors', type=int, metavar='N', default=10,
+                               help='Maximum processing errors before stopping (default: 10)')
+        
+        # Output control
+        self.add_output_options(read)
+        
+        return read
     
     def add_output_options(self, parser):
         """Add common output control options"""
@@ -876,6 +973,282 @@ Examples:
         
         return 0
     
+    def run_read(self, args):
+        """Execute unified read command with smart auto-detection"""
+        import time
+        from pathlib import Path
+        
+        # Validate input
+        if not os.path.exists(args.input):
+            self._safe_print(f"❌ Error: Input not found: {args.input}")
+            return 1
+        
+        verbose = getattr(args, 'verbose', False)
+        quiet = getattr(args, 'quiet', False)
+        
+        # Override detection if user specified
+        if getattr(args, 'as_images', False):
+            detection_result = "qr_images_dir" if os.path.isdir(args.input) else "qr_image_file"
+            stats = None
+        elif getattr(args, 'as_chunks', False):
+            detection_result = "chunk_files_dir" if os.path.isdir(args.input) else "chunk_file"
+            stats = None
+        else:
+            # Smart auto-detection
+            detection = self.detect_input_type(args.input)
+            if isinstance(detection, tuple):
+                detection_result, stats = detection
+            else:
+                detection_result = detection
+                stats = None
+        
+        # Provide user feedback on detection
+        if not quiet:
+            self._safe_print(f"🔍 Analyzing input: {args.input}")
+            
+            if detection_result == "qr_image_file":
+                self._safe_print(f"✨ Detected: Single QR image file")
+            elif detection_result == "chunk_file":
+                self._safe_print(f"✨ Detected: Single chunk file")
+            elif detection_result == "text_file":
+                self._safe_print(f"✨ Detected: Text file (treating as input for generation)")
+            elif detection_result == "qr_images_dir":
+                if stats:
+                    self._safe_print(f"✨ Detected: QR images directory ({len(stats['qr_images'])} images found)")
+                else:
+                    self._safe_print(f"✨ Detected: QR images directory")
+            elif detection_result == "chunk_files_dir":
+                if stats:
+                    self._safe_print(f"✨ Detected: Chunk files directory ({len(stats['chunk_files'])} chunks found)")
+                else:
+                    self._safe_print(f"✨ Detected: Chunk files directory")
+            elif detection_result == "mixed_content":
+                if stats:
+                    self._safe_print(f"✨ Detected: Mixed content ({len(stats['qr_images'])} images, {len(stats['chunk_files'])} chunks)")
+                else:
+                    self._safe_print(f"✨ Detected: Mixed content directory")
+        
+        # Route to appropriate processing based on detection and mode
+        mode = getattr(args, 'mode', 'auto')
+        
+        try:
+            if detection_result in ["qr_image_file", "qr_images_dir"]:
+                # Handle QR images
+                if mode == 'rebuild-only':
+                    self._safe_print("❌ Error: Cannot rebuild-only from QR images. Use scan-only or auto mode.")
+                    return 1
+                
+                if not quiet:
+                    auto_rebuild_note = " with auto-rebuild" if getattr(args, 'auto_rebuild', True) else ""
+                    self._safe_print(f"📸 Processing QR images{auto_rebuild_note}...")
+                
+                # Convert args for scan command
+                scan_args = self._convert_read_args_to_scan(args)
+                return self.run_scan(scan_args)
+                
+            elif detection_result in ["chunk_file", "chunk_files_dir"]:
+                # Handle chunk files
+                if mode == 'scan-only':
+                    self._safe_print("❌ Error: Cannot scan-only chunk files. Use rebuild-only or auto mode.")
+                    return 1
+                
+                if not quiet:
+                    self._safe_print(f"🔧 Rebuilding files from chunks...")
+                
+                # Convert args for rebuild command
+                rebuild_args = self._convert_read_args_to_rebuild(args)
+                return self.run_rebuild(rebuild_args)
+                
+            elif detection_result == "mixed_content":
+                # Handle mixed content
+                if not quiet:
+                    self._safe_print(f"🎯 Processing mixed content...")
+                
+                if mode == 'scan-only':
+                    # Only scan the images
+                    if stats and len(stats['qr_images']) > 0:
+                        scan_args = self._convert_read_args_to_scan(args)
+                        scan_args.auto_rebuild = False  # Force no rebuild
+                        return self.run_scan(scan_args)
+                    else:
+                        self._safe_print("❌ No QR images found for scan-only mode")
+                        return 1
+                        
+                elif mode == 'rebuild-only':
+                    # Only rebuild from chunks
+                    if stats and len(stats['chunk_files']) > 0:
+                        rebuild_args = self._convert_read_args_to_rebuild(args)
+                        return self.run_rebuild(rebuild_args)
+                    else:
+                        self._safe_print("❌ No chunk files found for rebuild-only mode")
+                        return 1
+                        
+                else:  # auto mode
+                    # Process both: scan images first, then rebuild everything
+                    success_count = 0
+                    
+                    if stats and len(stats['qr_images']) > 0:
+                        if verbose:
+                            self._safe_print(f"📸 Step 1: Scanning {len(stats['qr_images'])} QR images...")
+                        scan_args = self._convert_read_args_to_scan(args)
+                        scan_result = self.run_scan(scan_args)
+                        if scan_result == 0:
+                            success_count += 1
+                    
+                    if stats and len(stats['chunk_files']) > 0:
+                        if verbose:
+                            self._safe_print(f"🔧 Step 2: Rebuilding from {len(stats['chunk_files'])} chunk files...")
+                        rebuild_args = self._convert_read_args_to_rebuild(args)
+                        rebuild_result = self.run_rebuild(rebuild_args)
+                        if rebuild_result == 0:
+                            success_count += 1
+                    
+                    return 0 if success_count > 0 else 1
+                
+            elif detection_result == "text_file":
+                # Text file - suggest using generate instead
+                self._safe_print(f"💡 Detected text file. Did you mean 'qr generate {args.input}'?")
+                self._safe_print(f"   Use 'qr generate' to create QR codes from text files.")
+                return 1
+                
+            elif detection_result == "empty_dir":
+                self._safe_print(f"❌ Error: Directory is empty: {args.input}")
+                return 1
+                
+            elif detection_result in ["unknown_dir", "unknown_file", "unknown"]:
+                self._safe_print(f"❌ Error: Unable to determine how to process: {args.input}")
+                if stats and stats.get('other_files'):
+                    self._safe_print(f"   Found {len(stats['other_files'])} unrecognized files")
+                self._safe_print(f"   Supported: QR images (.png, .jpg, etc.) and chunk files (.txt)")
+                return 1
+                
+            else:
+                self._safe_print(f"❌ Error: Unknown detection result: {detection_result}")
+                return 1
+                
+        except Exception as e:
+            self._safe_print(f"❌ Error during processing: {e}")
+            if verbose:
+                import traceback
+                traceback.print_exc()
+            return 1
+    
+    def _convert_read_args_to_scan(self, args):
+        """Convert read command args to scan command args"""
+        scan_args = argparse.Namespace()
+        
+        # Map arguments
+        scan_args.input_dir = args.input
+        scan_args.output = getattr(args, 'output', None) or "./scan_output"
+        scan_args.auto_reconstruct = getattr(args, 'auto_rebuild', True)
+        scan_args.verbose = getattr(args, 'verbose', False)
+        scan_args.quiet = getattr(args, 'quiet', False)
+        scan_args.verify_checksums = getattr(args, 'verify_checksums', True)
+        scan_args.pattern = getattr(args, 'pattern', None)
+        scan_args.recursive = getattr(args, 'recursive', False)
+        scan_args.organized = getattr(args, 'organized', True)
+        scan_args.auto_cleanup = getattr(args, 'auto_cleanup', True)
+        scan_args.scan_summary = getattr(args, 'read_summary', True)
+        scan_args.max_errors = getattr(args, 'max_errors', 10)
+        
+        return scan_args
+    
+    def _convert_read_args_to_rebuild(self, args):
+        """Convert read command args to rebuild command args"""
+        rebuild_args = argparse.Namespace()
+        
+        # Map arguments
+        rebuild_args.chunks_dir = args.input
+        rebuild_args.output_dir = getattr(args, 'output', None)
+        rebuild_args.verify = getattr(args, 'verify_checksums', False)
+        rebuild_args.encrypted = getattr(args, 'encrypted', False)
+        rebuild_args.spaces = getattr(args, 'spaces', False)
+        rebuild_args.verbose = getattr(args, 'verbose', False)
+        rebuild_args.quiet = getattr(args, 'quiet', False)
+        rebuild_args.pattern = getattr(args, 'pattern', None)
+        rebuild_args.recursive = getattr(args, 'recursive', False)
+        rebuild_args.organized = getattr(args, 'organized', True)
+        rebuild_args.auto_cleanup = getattr(args, 'auto_cleanup', True)
+        rebuild_args.rebuild_summary = getattr(args, 'read_summary', True)
+        rebuild_args.batch = False  # Single operation
+        rebuild_args.suffix = None
+        
+        return rebuild_args
+    
+    def detect_input_type(self, input_path):
+        """Smart detection of input content type for unified read command"""
+        from pathlib import Path
+        import glob
+        
+        if not os.path.exists(input_path):
+            return "not_found"
+        
+        if os.path.isfile(input_path):
+            # Single file - check extension
+            ext = Path(input_path).suffix.lower()
+            if ext in {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif'}:
+                return "qr_image_file"
+            elif ext == '.txt':
+                # Check if it's a QR chunk file by reading first few lines
+                try:
+                    with open(input_path, 'r', encoding='utf-8') as f:
+                        content = f.read(200)  # Read first 200 chars
+                        if '--BEGIN part_' in content and 'file:' in content:
+                            return "chunk_file"
+                except:
+                    pass
+                return "text_file"
+            else:
+                return "unknown_file"
+        
+        if os.path.isdir(input_path):
+            # Directory - analyze contents
+            stats = {
+                'qr_images': [],
+                'chunk_files': [],
+                'other_files': [],
+                'total_files': 0
+            }
+            
+            # Scan directory for relevant files
+            for file_path in Path(input_path).iterdir():
+                if file_path.is_file():
+                    stats['total_files'] += 1
+                    ext = file_path.suffix.lower()
+                    
+                    if ext in {'.png', '.jpg', '.jpeg', '.bmp', '.tiff', '.tif'}:
+                        stats['qr_images'].append(str(file_path))
+                    elif ext == '.txt':
+                        # Check if it's a chunk file
+                        try:
+                            with open(file_path, 'r', encoding='utf-8') as f:
+                                content = f.read(200)
+                                if '--BEGIN part_' in content and 'file:' in content:
+                                    stats['chunk_files'].append(str(file_path))
+                                else:
+                                    stats['other_files'].append(str(file_path))
+                        except:
+                            stats['other_files'].append(str(file_path))
+                    else:
+                        stats['other_files'].append(str(file_path))
+            
+            # Determine directory type based on contents
+            has_qr_images = len(stats['qr_images']) > 0
+            has_chunk_files = len(stats['chunk_files']) > 0
+            
+            if has_qr_images and has_chunk_files:
+                return "mixed_content", stats
+            elif has_qr_images:
+                return "qr_images_dir", stats
+            elif has_chunk_files:
+                return "chunk_files_dir", stats
+            elif stats['total_files'] == 0:
+                return "empty_dir", stats
+            else:
+                return "unknown_dir", stats
+        
+        return "unknown"
+    
     def run(self, argv=None):
         """Main entry point"""
         parser = self.create_parser()
@@ -895,6 +1268,8 @@ Examples:
             return self.run_rebuild(args)
         elif args.command in ['config', 'cfg']:
             return self.run_config(args)
+        elif args.command in ['read', 'r']:
+            return self.run_read(args)
         else:
             self._safe_print(f"❌ Error: Unknown command: {args.command}")
             parser.print_help()
