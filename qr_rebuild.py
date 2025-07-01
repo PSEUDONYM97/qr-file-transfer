@@ -3,7 +3,8 @@ import os
 import sys
 
 def parse_chunk_metadata(chunk_text):
-    header_match = re.search(r"--BEGIN part_(\d+)_of_.*?file:\s*(.+?)--", chunk_text)
+    # Updated regex to handle new format with hash information
+    header_match = re.search(r"--BEGIN part_(\d+)_of_.*?file:\s*([^\s]+)(?:\s+chunk_hash:.*?)?--", chunk_text)
     footer_match = re.search(r"--END part_\d+--", chunk_text)
 
     if not header_match or not footer_match:

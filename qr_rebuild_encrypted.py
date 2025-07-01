@@ -99,7 +99,7 @@ def parse_chunk_file(file_path, password=None, decryption=None, verbose=False):
         
         # Check for encrypted chunk format
         encrypted_match = re.search(
-            r'--BEGIN ENCRYPTED part_(\d+)_of_(\d+) file: (.+?) chunk_hash: (\w+) file_hash: (\w+)--\n(.+?)\n--END ENCRYPTED part_(\d+)--',
+            r'--BEGIN ENCRYPTED part_(\d+)_of_(\d+) file: ([^\s]+) chunk_hash: (\w+) file_hash: (\w+)--\n(.+?)\n--END ENCRYPTED part_(\d+)--',
             content, re.DOTALL
         )
         
@@ -147,7 +147,7 @@ def parse_chunk_file(file_path, password=None, decryption=None, verbose=False):
         
         # Standard unencrypted chunk format
         match = re.search(
-            r'--BEGIN part_(\d+)_of_(\d+) file: (.+?) chunk_hash: (\w+) file_hash: (\w+)--\n(.+?)\n--END part_(\d+)--',
+            r'--BEGIN part_(\d+)_of_(\d+) file: ([^\s]+) chunk_hash: (\w+) file_hash: (\w+)--\n(.+?)\n--END part_(\d+)--',
             content, re.DOTALL
         )
         

@@ -48,6 +48,15 @@ class QRConfig:
         self.config = DEFAULT_CONFIG.copy()
         self.load_config()
     
+    def _safe_print(self, text):
+        """Print text with fallback for Unicode issues on Windows"""
+        try:
+            print(text)
+        except UnicodeEncodeError:
+            # Fallback: remove Unicode characters for Windows compatibility
+            safe_text = text.encode('ascii', 'ignore').decode('ascii')
+            print(safe_text)
+    
     def _get_default_config_path(self) -> str:
         """Get the default configuration file path"""
         if sys.platform.startswith('win'):
@@ -207,15 +216,15 @@ class QRConfig:
     
     def print_config(self) -> None:
         """Print current configuration"""
-        print("📋 Current Configuration:")
-        print(f"  Config file: {self.config_path}")
-        print()
+        self._safe_print("📋 Current Configuration:")
+        self._safe_print(f"  Config file: {self.config_path}")
+        self._safe_print("")
         
         for section, values in self.config.items():
-            print(f"[{section}]")
+            self._safe_print(f"[{section}]")
             for key, value in values.items():
-                print(f"  {key} = {value}")
-            print()
+                self._safe_print(f"  {key} = {value}")
+            self._safe_print("")
     
     def reset_to_defaults(self) -> None:
         """Reset configuration to defaults"""
@@ -261,13 +270,13 @@ def main():
     elif args.reset:
         config.reset_to_defaults()
         if config.save_config():
-            print("✅ Configuration reset to defaults")
+            config._safe_print("✅ Configuration reset to defaults")
         else:
-            print("❌ Failed to save configuration")
+            config._safe_print("❌ Failed to save configuration")
     elif args.sample:
         sample_path = config.create_sample_config()
         if sample_path:
-            print(f"✅ Sample configuration created: {sample_path}")
+            config._safe_print(f"✅ Sample configuration created: {sample_path}")
     else:
         config.print_config()
 

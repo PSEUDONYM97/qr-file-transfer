@@ -159,6 +159,15 @@ class QRTransferTool:
         self.file_hash = None
         self.crypto = QRCrypto() if HAS_CRYPTO else None
         self.encryption_password = None
+    
+    def _safe_print(self, text):
+        """Print text with fallback for Unicode issues on Windows"""
+        try:
+            print(text)
+        except UnicodeEncodeError:
+            # Fallback: remove Unicode characters for Windows compatibility
+            safe_text = text.encode('ascii', 'ignore').decode('ascii')
+            print(safe_text)
         
     def __enter__(self):
         if self.args.cleanup:
@@ -182,16 +191,16 @@ class QRTransferTool:
         if not HAS_CRYPTO:
             raise RuntimeError("Cryptography library not available. Install with: pip install cryptography")
         
-        print("🔐 Encryption enabled - password required")
+        self._safe_print("🔐 Encryption enabled - password required")
         while True:
             password = getpass.getpass("Enter encryption password: ")
             if len(password) < 8:
-                print("❌ Password must be at least 8 characters long")
+                self._safe_print("❌ Password must be at least 8 characters long")
                 continue
             
             confirm = getpass.getpass("Confirm password: ")
             if password != confirm:
-                print("❌ Passwords do not match")
+                self._safe_print("❌ Passwords do not match")
                 continue
                 
             return password
@@ -385,7 +394,7 @@ class QRTransferTool:
         # Handle encryption if enabled
         if self.args.encrypt and self.encryption_password and self.crypto:
             if self.args.verbose:
-                print(f"  🔐 Encrypting chunk {i:02d}...")
+                self._safe_print(f"  🔐 Encrypting chunk {i:02d}...")
             
             # Encrypt the chunk content
             encrypted_data, salt, iv = self.crypto.encrypt_data(chunk, self.encryption_password)
@@ -474,7 +483,7 @@ class QRTransferTool:
         if self.args.encrypt:
             self.encryption_password = self.get_encryption_password()
             if self.args.verbose:
-                print("🔐 Encryption enabled - content will be secured")
+                self._safe_print("🔐 Encryption enabled - content will be secured")
             
         # Read and prepare content
         content = self.sanitize_file(filepath)
@@ -482,12 +491,12 @@ class QRTransferTool:
         
         # Calculate file hash for integrity verification
         if not self.args.quiet:
-            print("🔒 Calculating file hash...")
+            self._safe_print("🔒 Calculating file hash...")
         self.file_hash = self.calculate_file_hash(content)
         
         if self.args.verbose:
-            print(f"📊 File size: {content_bytes:,} bytes")
-            print(f"🔒 File hash: {self.file_hash[:16]}...")
+            self._safe_print(f"📊 File size: {content_bytes:,} bytes")
+            self._safe_print(f"🔒 File hash: {self.file_hash[:16]}...")
             
         # Split into chunks
         chunks = self.split_at_line_boundaries(content, MAX_CHUNK_SIZE)
@@ -508,7 +517,7 @@ class QRTransferTool:
         
         encryption_status = " with AES-256 encryption" if self.args.encrypt else " with integrity verification"
         if not self.args.quiet:
-            print(f"🎯 Generating {total_parts} QR codes{encryption_status}...")
+            self._safe_print(f"🎯 Generating {total_parts} QR codes{encryption_status}...")
             
         # Use parallel processing for better performance (if more than 3 chunks)
         if total_parts > 3 and not self.args.no_parallel:
@@ -550,7 +559,7 @@ class QRTransferTool:
                             print(f"  📄 Part {i:02d}: {chunk_bytes:,} bytes, hash: {chunk_hash}{encryption_note}")
                             
                     except Exception as exc:
-                        print(f"  ❌ Part {index} generated an exception: {exc}")
+                        self._safe_print(f"  ❌ Part {index} generated an exception: {exc}")
                         
             # Sort results by part number
             qr_images = [results[i][0] for i in sorted(results.keys())]
@@ -565,7 +574,7 @@ class QRTransferTool:
                 # Handle encryption if enabled
                 if self.args.encrypt and self.encryption_password and self.crypto:
                     if self.args.verbose:
-                        print(f"  🔐 Encrypting chunk {i:02d}...")
+                        self._safe_print(f"  🔐 Encrypting chunk {i:02d}...")
                     
                     # Encrypt the chunk content
                     encrypted_data, salt, iv = self.crypto.encrypt_data(chunk, self.encryption_password)
@@ -600,7 +609,7 @@ class QRTransferTool:
         
         encryption_msg = f" with AES-256 encryption" if self.args.encrypt else " with checksums"
         if not self.args.quiet:
-            print(f"✅ Generated {total_parts} QR codes{encryption_msg} for {filename}")
+            self._safe_print(f"✅ Generated {total_parts} QR codes{encryption_msg} for {filename}")
 
     def save_qr_codes(self, qr_images, filename, total_parts):
         """Save QR codes as individual files or sheets"""
@@ -739,7 +748,7 @@ Examples:
     
     # Check encryption dependencies
     if args.encrypt and not HAS_CRYPTO:
-        print("❌ Encryption requires 'cryptography' library")
+        print("Error: Encryption requires 'cryptography' library")
         print("   Install with: pip install cryptography")
         sys.exit(1)
     
@@ -790,7 +799,7 @@ Examples:
         print("\n⏹️  Operation cancelled by user")
         sys.exit(1)
     except Exception as e:
-        print(f"❌ Error: {e}")
+        print(f"Error: {e}")
         if args.verbose:
             import traceback
             traceback.print_exc()

@@ -139,6 +139,9 @@ encrypted_test/
 test_images/
 *.json
 config.json
+qr_output/
+scan_output/
+rebuild_output/
 
 # IDE files
 .vscode/

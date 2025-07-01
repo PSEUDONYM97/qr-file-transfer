@@ -19,8 +19,8 @@ def calculate_file_hash(content):
 
 def parse_chunk_metadata(chunk_text):
     """Parse QR chunk metadata with checksum validation"""
-    # Updated regex to handle checksums
-    header_match = re.search(r"--BEGIN part_(\d+)_of_(\d+) file:\s*(.+?)(?:\s+chunk_hash:\s*([a-f0-9]+))?\s*(?:file_hash:\s*([a-f0-9]+))?--", chunk_text)
+    # Updated regex to handle checksums with proper filename extraction
+    header_match = re.search(r"--BEGIN part_(\d+)_of_(\d+) file:\s*([^\s]+)(?:\s+chunk_hash:\s*([a-f0-9]+))?\s*(?:file_hash:\s*([a-f0-9]+))?--", chunk_text)
     footer_match = re.search(r"--END part_\d+--", chunk_text)
 
     if not header_match or not footer_match:
