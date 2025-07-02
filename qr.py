@@ -63,13 +63,31 @@ and secure file transfer workflows.
         """
     
     def _safe_print(self, text):
-        """Print text with fallback for Unicode issues on Windows"""
+        """Safe printing that handles Unicode issues across different terminals"""
         try:
             print(text)
         except UnicodeEncodeError:
-            # Fallback: remove Unicode characters for Windows compatibility
-            safe_text = text.encode('ascii', 'ignore').decode('ascii')
-            print(safe_text)
+            # Fallback for terminals that can't handle Unicode (like Windows cmd with cp1252)
+            # Replace problematic Unicode characters with ASCII alternatives
+            fallback_text = text
+            fallback_text = fallback_text.replace('🚀', '>>>')
+            fallback_text = fallback_text.replace('✨', '***')
+            fallback_text = fallback_text.replace('🎯', '>>>')
+            fallback_text = fallback_text.replace('📸', '[SCAN]')
+            fallback_text = fallback_text.replace('🔧', '[BUILD]')
+            fallback_text = fallback_text.replace('🔍', '[DETECT]')
+            fallback_text = fallback_text.replace('✅', '[OK]')
+            fallback_text = fallback_text.replace('❌', '[ERR]')
+            fallback_text = fallback_text.replace('⚠️', '[WARN]')
+            fallback_text = fallback_text.replace('📁', '[DIR]')
+            fallback_text = fallback_text.replace('📄', '[FILE]')
+            fallback_text = fallback_text.replace('•', '*')
+            fallback_text = fallback_text.replace('═', '=')
+            try:
+                print(fallback_text)
+            except UnicodeEncodeError:
+                # Last resort: encode to ASCII with replacement
+                print(text.encode('ascii', 'replace').decode('ascii'))
     
     def create_parser(self):
         """Create the main argument parser with subcommands"""
@@ -185,8 +203,10 @@ Examples:
         
         # Output format options
         output = generate.add_argument_group('Output Format Options')
-        output.add_argument('--sheet', action='store_true',
-                          help='Generate QR code sheets (recommended for multiple codes)')
+        output.add_argument('--sheet', action='store_true', default=True,
+                          help='Generate QR code sheets (default: enabled)')
+        output.add_argument('--no-sheet', dest='sheet', action='store_false',
+                          help='Generate individual QR files instead of sheets')
         output.add_argument('--sheet-size', type=int, metavar='N',
                           help='QR codes per sheet (default: 9)')
         output.add_argument('--sheet-cols', type=int, metavar='N', 
@@ -240,7 +260,7 @@ Examples:
         )
         
         # Required arguments
-        scan.add_argument('input_dir', help='Directory containing QR code images')
+        scan.add_argument('input', help='File or directory containing QR code images')
         
         # Input/Output organization
         io_group = scan.add_argument_group('Input/Output Options')
@@ -299,7 +319,7 @@ Examples:
         )
         
         # Required arguments
-        rebuild.add_argument('chunks_dir', help='Directory containing chunk files')
+        rebuild.add_argument('input', help='File or directory containing chunk files')
         
         # Input/Output organization  
         io_group = rebuild.add_argument_group('Input/Output Options')
@@ -603,6 +623,43 @@ Examples:
         
         return summary_file, summary
     
+    def _cleanup_organized_output(self, session_output_dir, quiet=False):
+        """Clean up organized output directory with 30-second viewing window"""
+        import shutil
+        import time
+        
+        if not session_output_dir.exists():
+            return
+            
+        # Allow 30 seconds for viewing organized output before cleanup
+        if not quiet:
+            self._safe_print(f"📁 QR codes generated at: {session_output_dir}")
+            self._safe_print(f"🕐 Auto-cleanup in 30 seconds (Ctrl+C to keep files)")
+            
+            try:
+                # Simple countdown that works in PowerShell
+                for i in range(30, 0, -1):
+                    if i % 5 == 0 or i <= 10:  # Show every 5 seconds, then every second for last 10
+                        print(f"⏳ Cleanup in {i} seconds...")
+                    time.sleep(1)
+                print("🧹 Starting cleanup...")
+            except KeyboardInterrupt:
+                print(f"\n⏹️  Cleanup cancelled - files preserved at: {session_output_dir}")
+                return
+        
+        # Clean up the entire organized output directory
+        try:
+            shutil.rmtree(session_output_dir)
+            if not quiet:
+                self._safe_print(f"🧹 Cleaned up organized output: {session_output_dir}")
+        except PermissionError as e:
+            if not quiet:
+                self._safe_print(f"⚠️  Permission denied - could not cleanup: {session_output_dir}")
+                self._safe_print(f"    Files may still be in use. Close any programs accessing them.")
+        except Exception as e:
+            if not quiet:
+                self._safe_print(f"⚠️  Could not cleanup {session_output_dir}: {e}")
+
     def run_generate(self, args):
         """Execute generate command with folder support"""
         import time
@@ -658,8 +715,6 @@ Examples:
         verbose = getattr(args, 'verbose', False)
         quiet = getattr(args, 'quiet', False)
         
-
-        
         if not quiet:
             is_folder = os.path.isdir(args.input)
             encryption_note = " with AES-256 encryption" if args.encrypt else ""
@@ -710,7 +765,7 @@ Examples:
                 # Copy over relevant arguments with defaults
                 tool_args.file = file_path
                 tool_args.encrypt = getattr(args, 'encrypt', False)
-                tool_args.sheet = getattr(args, 'sheet', False)
+                tool_args.sheet = getattr(args, 'sheet', True)  # Default to sheet mode
                 tool_args.sheet_size = getattr(args, 'sheet_size', None) or 9
                 tool_args.sheet_cols = getattr(args, 'sheet_cols', None) or 3
                 tool_args.box_size = getattr(args, 'box_size', None) or 10
@@ -721,8 +776,8 @@ Examples:
                 tool_args.quiet = quiet or len(files_to_process) > 1  # Quiet for batch processing
                 tool_args.no_parallel = getattr(args, 'no_parallel', False)
                 
-                # Set up cleanup - always enabled for organized workflows
-                tool_args.cleanup = getattr(args, 'auto_cleanup', True) or getattr(args, 'cleanup', False)
+                # Disable cleanup in individual tools - we'll handle it centrally
+                tool_args.cleanup = False
                 
                 # Override working directory for organized output
                 if getattr(args, 'organized', True):
@@ -780,6 +835,10 @@ Examples:
                 if verbose:
                     self._safe_print(f"⚠️  Could not generate batch summary: {e}")
         
+        # Optional cleanup of organized output directory
+        if getattr(args, 'auto_cleanup', True) and successful_count > 0:
+            self._cleanup_organized_output(session_output_dir, quiet)
+        
         # Final summary
         if not quiet:
             self._safe_print(f"\n{'='*60}")
@@ -798,25 +857,28 @@ Examples:
             else:
                 self._safe_print(f"✅ QR code generation completed successfully")
             
-            self._safe_print(f"📁 Output location: {session_output_dir}")
-            if getattr(args, 'organized', True):
-                self._safe_print(f"   📂 QR codes: {session_output_dir / 'qr_codes'}")
-                if getattr(args, 'sheet', False):
-                    self._safe_print(f"   📄 Sheets: {session_output_dir / 'sheets'}")
-                self._safe_print(f"   📊 Reports: {session_output_dir / 'reports'}")
+            if not getattr(args, 'auto_cleanup', True):
+                self._safe_print(f"📁 Output location: {session_output_dir}")
+                if getattr(args, 'organized', True):
+                    self._safe_print(f"   📂 QR codes: {session_output_dir / 'qr_codes'}")
+                    if getattr(args, 'sheet', False):
+                        self._safe_print(f"   📄 Sheets: {session_output_dir / 'sheets'}")
+                    self._safe_print(f"   📊 Reports: {session_output_dir / 'reports'}")
         
         return 0 if successful_count == len(files_to_process) else 1
     
     def run_scan(self, args):
         """Execute scan command"""
-        # Validate input directory
-        if not os.path.isdir(args.input_dir):
-            self._safe_print(f"❌ Error: Directory not found: {args.input_dir}")
+        from pathlib import Path
+        
+        # Validate input exists
+        if not os.path.exists(args.input):
+            self._safe_print(f"❌ Error: Input not found: {args.input}")
             return 1
         
-        # Set up arguments for QRBatchScanner
+        # Set up arguments for QRBatchScanner  
         scanner_args = argparse.Namespace()
-        scanner_args.input_dir = args.input_dir
+        scanner_args.input_dir = args.input  # QRBatchScanner still expects input_dir
         scanner_args.output = args.output
         scanner_args.auto_reconstruct = getattr(args, 'auto_reconstruct', False)
         scanner_args.verbose = getattr(args, 'verbose', False)
@@ -830,12 +892,34 @@ Examples:
         try:
             if not scanner_args.quiet:
                 auto_note = " with auto-reconstruction" if scanner_args.auto_reconstruct else ""
-                self._safe_print(f"📸 Scanning QR images{auto_note} from: {args.input_dir}")
+                self._safe_print(f"📸 Scanning QR images{auto_note} from: {args.input}")
             
             scanner = QRBatchScanner(scanner_args)
             
-            # Process images
-            scanner.process_image_folder(args.input_dir)
+            # Process images (handle both files and directories)
+            if os.path.isfile(args.input):
+                # Single file - process directly
+                if not scanner_args.quiet:
+                    self._safe_print(f"📷 Processing single QR image: {Path(args.input).name}")
+                
+                # Process the single image
+                qr_contents = scanner.scan_qr_codes_from_image(args.input)
+                scanner.stats['images_processed'] = 1
+                
+                # Parse QR contents
+                for content in qr_contents:
+                    chunk_data = scanner.parse_chunk_metadata(content)
+                    if chunk_data:
+                        scanner.found_chunks.append(chunk_data)
+                        scanner.stats['valid_chunks'] += 1
+                        if scanner_args.verbose:
+                            self._safe_print(f"    ✅ Valid chunk: Part {chunk_data['part_num']:02d} of {chunk_data['total_parts']:02d}")
+                    else:
+                        if scanner_args.verbose:
+                            self._safe_print(f"    ⚠️  Invalid chunk format (not a file chunk QR)")
+            else:
+                # Directory - use existing method
+                scanner.process_image_folder(args.input)
             
             # Validate and organize chunks
             validated_files = scanner.validate_chunks()
@@ -874,9 +958,9 @@ Examples:
     
     def run_rebuild(self, args):
         """Execute rebuild command"""
-        # Validate chunks directory
-        if not os.path.isdir(args.chunks_dir):
-            self._safe_print(f"❌ Error: Directory not found: {args.chunks_dir}")
+        # Validate input exists
+        if not os.path.exists(args.input):
+            self._safe_print(f"❌ Error: Input not found: {args.input}")
             return 1
         
         try:
@@ -891,13 +975,13 @@ Examples:
             if not quiet:
                 reconstruction_type = "encrypted " if getattr(args, 'encrypted', False) else ""
                 verification_note = " with verification" if getattr(args, 'verify', False) else ""
-                self._safe_print(f"🔄 Rebuilding {reconstruction_type}files{verification_note} from: {args.chunks_dir}")
+                self._safe_print(f"🔄 Rebuilding {reconstruction_type}files{verification_note} from: {args.input}")
             
             # Choose appropriate reconstruction method
             if getattr(args, 'encrypted', False):
                 # Use encrypted reconstruction
                 import qr_rebuild_encrypted
-                sys.argv = ['qr_rebuild_encrypted.py', args.chunks_dir]
+                sys.argv = ['qr_rebuild_encrypted.py', args.input]
                 if getattr(args, 'output_dir'):
                     sys.argv.extend(['--output', args.output_dir])
                 qr_rebuild_encrypted.main()
@@ -905,18 +989,18 @@ Examples:
             elif getattr(args, 'verify', False):
                 # Use verified reconstruction
                 import qr_rebuild_verified
-                sys.argv = ['qr_rebuild_verified.py', args.chunks_dir]
+                sys.argv = ['qr_rebuild_verified.py', args.input]
                 qr_rebuild_verified.main()
                 
             elif getattr(args, 'spaces', False):
                 # Use spaces reconstruction
                 import qr_rebuild_spaces
-                sys.argv = ['qr_rebuild_spaces.py', args.chunks_dir]
+                sys.argv = ['qr_rebuild_spaces.py', args.input]
                 qr_rebuild_spaces.main()
                 
             else:
                 # Use basic reconstruction
-                sys.argv = ['qr_rebuild.py', args.chunks_dir]
+                sys.argv = ['qr_rebuild.py', args.input]
                 qr_rebuild.main()
             
             if not quiet:
@@ -1138,7 +1222,7 @@ Examples:
         scan_args = argparse.Namespace()
         
         # Map arguments
-        scan_args.input_dir = args.input
+        scan_args.input = args.input  # Fixed: now uses 'input' instead of 'input_dir'
         scan_args.output = getattr(args, 'output', None) or "./scan_output"
         scan_args.auto_reconstruct = getattr(args, 'auto_rebuild', True)
         scan_args.verbose = getattr(args, 'verbose', False)
@@ -1157,8 +1241,8 @@ Examples:
         """Convert read command args to rebuild command args"""
         rebuild_args = argparse.Namespace()
         
-        # Map arguments
-        rebuild_args.chunks_dir = args.input
+        # Map arguments  
+        rebuild_args.input = args.input  # This maps to the new 'input' argument
         rebuild_args.output_dir = getattr(args, 'output', None)
         rebuild_args.verify = getattr(args, 'verify_checksums', False)
         rebuild_args.encrypted = getattr(args, 'encrypted', False)

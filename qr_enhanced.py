@@ -182,6 +182,7 @@ class QRTransferTool:
             self.encryption_password = None
             
         if self.args.cleanup and self.temp_dir:
+            # Cleanup handled by unified CLI - skip countdown for individual tools
             shutil.rmtree(self.temp_dir, ignore_errors=True)
             if self.args.verbose:
                 print(f"🧹 Cleaned up temporary directory: {self.temp_dir}")
