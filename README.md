@@ -1,4 +1,4 @@
-# 🚀 QR File Transfer Tool
+# 🚀 QR File Transfer Tool v3.0
 
 **Transfer files securely using QR codes - Perfect for air-gapped systems and mobile workflows**
 
@@ -12,6 +12,7 @@ Convert any file into QR code sheets, scan them with your phone, and reconstruct
 - **🔧 Format Preservation**: Exact file reconstruction with tabs, encoding, and structure intact
 - **⚡ Smart Detection**: Auto-detects file types and processing methods
 - **🖥️ Cross-Platform**: Works on Windows, macOS, and Linux
+- **🌍 Global Command**: Run `qr` from anywhere after installation
 
 ---
 
@@ -19,16 +20,7 @@ Convert any file into QR code sheets, scan them with your phone, and reconstruct
 
 ### Installation
 
-#### Option 1: Install from PyPI (Recommended)
-```bash
-# Install directly from PyPI
-pip install qr-file-transfer
-
-# Test the installation
-qr --version
-```
-
-#### Option 2: Install from Source
+#### Option 1: Install from Source (Recommended)
 ```bash
 # Clone the repository
 git clone https://github.com/PSEUDONYM97/qr-file-transfer.git
@@ -37,32 +29,82 @@ cd qr-file-transfer
 # Install with pip (creates `qr` command)
 pip install -e .
 
-# Or install dependencies manually
+# Add Python Scripts to PATH (see instructions below)
+```
+
+#### Option 2: Direct Usage (No Installation)
+```bash
+# Clone the repository
+git clone https://github.com/PSEUDONYM97/qr-file-transfer.git
+cd qr-file-transfer
+
+# Install dependencies
 pip install -r requirements.txt
 
-# Test the installation
-python qr.py --version  # Manual install
-qr --version             # Pip install
+# Use directly
+python qr.py generate myfile.txt --sheet
 ```
 
 #### Requirements
 - Python 3.8 or higher
 - See `requirements.txt` for Python package dependencies
 
+### 🌍 Making `qr` Command Global
+
+After running `pip install -e .`, you need to add the Python Scripts directory to your system PATH:
+
+#### Windows
+1. **Find your Python Scripts directory**:
+   ```powershell
+   python -c "import site; print(site.USER_BASE + '\\Scripts')"
+   ```
+   This will show something like: `C:\Users\YourName\AppData\Roaming\Python\Python3XX\Scripts`
+
+2. **Add to PATH permanently**:
+   - Press `Win + R`, type `sysdm.cpl`, press Enter
+   - Click "Environment Variables"
+   - Under "User variables", select "Path" and click "Edit"
+   - Click "New" and add your Scripts directory path
+   - Click "OK" on all dialogs
+   - **Restart your command prompt/PowerShell**
+
+3. **Test the global command**:
+   ```bash
+   qr --version  # Should show: qr 3.0.0
+   ```
+
+#### macOS/Linux
+1. **Find your Python Scripts directory**:
+   ```bash
+   python3 -c "import site; print(site.USER_BASE + '/bin')"
+   ```
+
+2. **Add to PATH permanently**:
+   ```bash
+   # Add to your shell profile (~/.bashrc, ~/.zshrc, etc.)
+   echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
+   source ~/.bashrc
+   ```
+
+3. **Test the global command**:
+   ```bash
+   qr --version  # Should show: qr 3.0.0
+   ```
+
 ### Basic Usage
 
 ```bash
 # Generate QR code sheets (recommended)
-python qr.py generate myfile.txt --sheet
+qr generate myfile.txt --sheet
 
 # Process single QR image (auto-detects and rebuilds)
-python qr.py read my_photo_of_qr.png
+qr read my_photo_of_qr.png
 
 # Process folder of QR images  
-python qr.py read ./qr_photos/
+qr read ./qr_photos/
 
 # Generate with encryption
-python qr.py generate sensitive.txt --encrypt --sheet
+qr generate sensitive.txt --encrypt --sheet
 ```
 
 ---
@@ -89,58 +131,62 @@ Share code, data, and documents in environments with network restrictions.
 
 ```bash
 # Basic generation
-python qr.py generate myfile.txt
+qr generate myfile.txt
 
 # Generate QR sheets (9 codes per image - recommended)
-python qr.py generate myfile.txt --sheet
+qr generate myfile.txt --sheet
 
 # With encryption (prompts for password)
-python qr.py generate myfile.txt --encrypt --sheet
+qr generate myfile.txt --encrypt --sheet
 
 # Verbose output with progress tracking
-python qr.py generate myfile.txt --sheet --verbose
+qr generate myfile.txt --sheet --verbose
 
 # Skip automatic cleanup for debugging
-python qr.py generate myfile.txt --sheet --no-cleanup
+qr generate myfile.txt --sheet --no-cleanup
 ```
 
 ### Read QR Codes
 
 ```bash
 # Process single QR image (auto-detects and rebuilds)
-python qr.py read qr_photo.png
+qr read qr_photo.png
 
 # Process folder of QR images
-python qr.py read ./qr_photos/
+qr read ./qr_photos/
 
 # Process with verbose output
-python qr.py read ./qr_photos/ --verbose
+qr read ./qr_photos/ --verbose
 
 # Handle encrypted content
-python qr.py read ./encrypted_qrs/ --encrypted
+qr read ./encrypted_qrs/ --encrypted
 ```
 
 ### Legacy Commands (Still Supported)
 
 ```bash
 # Traditional workflow (v1.x style)
-python qr.py scan ./qr_photos/           # Scan QR images
-python qr.py rebuild ./scanned_chunks/   # Rebuild from chunks
+qr scan ./qr_photos/           # Scan QR images
+qr rebuild ./scanned_chunks/   # Rebuild from chunks
+
+# Or use the Python script directly if global command isn't working
+python qr.py generate myfile.txt --sheet
+python qr.py read ./qr_photos/
 ```
 
 ### Configuration
 
 ```bash
 # View current settings
-python qr.py config show
+qr config show
 
 # Reset to defaults
-python qr.py config reset
+qr config reset
 
 # Get help for any command
-python qr.py --help
-python qr.py generate --help
-python qr.py read --help
+qr --help
+qr generate --help
+qr read --help
 ```
 
 ---
@@ -150,36 +196,36 @@ python qr.py read --help
 ### **Standard Workflow**
 ```bash
 # 1. Generate QR sheets with verification
-python qr.py generate important_file.txt --sheet --verbose
+qr generate important_file.txt --sheet --verbose
 
 # 2. Take photos of QR sheets with mobile device
 #    - Use any QR scanner app or camera
 #    - Save images to a folder
 
 # 3. Process scanned images and reconstruct file
-python qr.py read ./qr_photos/
+qr read ./qr_photos/
 # Output: important_file.txt (exactly as original)
 ```
 
 ### **Encrypted Workflow**
 ```bash
 # 1. Generate encrypted QR codes
-python qr.py generate sensitive_data.json --encrypt --sheet --verbose
+qr generate sensitive_data.json --encrypt --sheet --verbose
 # → Prompts for password, generates encrypted QR sheets
 
 # 2. Transfer QR sheets (print, photo, etc.)
 
 # 3. Scan and decrypt on target system  
-python qr.py read ./received_qr_images/ --encrypted
+qr read ./received_qr_images/ --encrypted
 # → Prompts for password, verifies integrity, reconstructs file
 ```
 
-### **Single Image Processing** ✨ New in v2.0
+### **Single Image Processing** ✨ New in v2.0+
 ```bash
 # Process individual QR images directly
-python qr.py read single_qr_photo.png      # ✅ Auto-detects and rebuilds
-python qr.py read screenshot_qr.jpg        # ✅ Works with any image format
-python qr.py read phone_camera_qr.png      # ✅ Handles phone photos
+qr read single_qr_photo.png      # ✅ Auto-detects and rebuilds
+qr read screenshot_qr.jpg        # ✅ Works with any image format
+qr read phone_camera_qr.png      # ✅ Handles phone photos
 ```
 
 ---
@@ -236,16 +282,27 @@ The tool automatically detects input types and chooses optimal processing:
 
 ### Common Issues
 
+**"qr command not found" Error**
+```bash
+# Check if Python Scripts is in PATH
+echo $PATH  # Linux/macOS
+echo $env:PATH  # Windows PowerShell
+
+# Use the direct Python method if PATH isn't set up
+python qr.py --version
+python qr.py generate myfile.txt --sheet
+```
+
 **"Invalid version" Error**
 ```bash
 # File too large for single QR - use chunking
-python qr.py generate largefile.txt --sheet
+qr generate largefile.txt --sheet
 ```
 
 **Missing Tab Characters**
 ```bash
 # Check reconstruction method
-python qr.py read ./qr_photos/ --verbose
+qr read ./qr_photos/ --verbose
 # Use qr_rebuild.py directly if needed for tab preservation
 ```
 
@@ -258,17 +315,45 @@ pip install -r requirements.txt
 ### Debug Mode
 
 ```bash
-python qr.py generate myfile.txt --verbose --no-cleanup
-python qr.py read ./qr_photos/ --verbose
+qr generate myfile.txt --verbose --no-cleanup
+qr read ./qr_photos/ --verbose
 # Shows detailed processing information and preserves temporary files
 ```
 
 ### Getting Help
 
 ```bash
-python qr.py --help              # General help
-python qr.py generate --help     # Command-specific help
-python qr.py read --help         # Command-specific help
+qr --help              # General help
+qr generate --help     # Command-specific help
+qr read --help         # Command-specific help
+```
+
+---
+
+## 🎯 Version 3.0 Global Command Features
+
+### ✨ **What's New in v3.0**
+
+- **🌍 Global Installation**: Run `qr` from anywhere after proper PATH setup
+- **📦 Package Structure**: Proper Python package for pip installation
+- **🛠️ Improved Setup**: Clear instructions for cross-platform installation
+- **🔧 Fallback Support**: Direct Python usage if global command isn't working
+- **📚 Enhanced Documentation**: Step-by-step installation guide
+
+### 🚀 **Quick Test After Installation**
+
+```bash
+# Test the global command
+qr --version                     # Should show: qr 3.0.0
+
+# Create a quick test
+echo "Hello World" > test.txt
+qr generate test.txt --sheet     # Generate QR sheet
+qr read qr_output/*/qr_codes/*.png  # Read it back
+
+# If global command doesn't work, use Python directly
+python qr.py --version
+python qr.py generate test.txt --sheet
 ```
 
 ---
@@ -288,7 +373,7 @@ cd qr-file-transfer
 pip install -e .
 
 # Test the installation
-python qr.py --version
+qr --version  # or python qr.py --version
 ```
 
 ### Types of Contributions Welcome
@@ -316,4 +401,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **🎯 Mission**: Making secure, air-gapped file transfer accessible and reliable through professional-grade QR code technology.
 
-**Status**: ✅ Production Ready - Enterprise-grade security with intuitive CLI interface 
+**Status**: ✅ Production Ready - Enterprise-grade security with intuitive CLI interface
+
+**v3.0**: 🌍 Now with global command support - use `qr` from anywhere! 

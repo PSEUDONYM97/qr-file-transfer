@@ -16,17 +16,17 @@ with open("requirements.txt", "r", encoding="utf-8") as fh:
 
 setup(
     name="qr-file-transfer",
-    version="2.0.0",
+    version="3.0.0",
     author="QR File Transfer Team",
     author_email="",
-    description="Professional-grade file transfer using QR codes with AES-256 encryption",
+    description="Professional-grade file transfer using QR codes with AES-256 encryption - Now globally installable!",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/username/qr-file-transfer",
+    url="https://github.com/PSEUDONYM97/qr-file-transfer",
     project_urls={
-        "Bug Reports": "https://github.com/username/qr-file-transfer/issues",
-        "Source": "https://github.com/username/qr-file-transfer",
-        "Documentation": "https://github.com/username/qr-file-transfer#readme",
+        "Bug Reports": "https://github.com/PSEUDONYM97/qr-file-transfer/issues",
+        "Source": "https://github.com/PSEUDONYM97/qr-file-transfer",
+        "Documentation": "https://github.com/PSEUDONYM97/qr-file-transfer#readme",
     },
     classifiers=[
         "Development Status :: 5 - Production/Stable",
@@ -49,10 +49,10 @@ setup(
     install_requires=requirements,
     entry_points={
         "console_scripts": [
-            "qr=qr:main",
+            "qr=qr_file_transfer.main:main",
         ],
     },
     include_package_data=True,
     zip_safe=False,
-    keywords="qr-code file-transfer encryption air-gap security",
+    keywords="qr-code file-transfer encryption air-gap security cli global-command",
 ) 
